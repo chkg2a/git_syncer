@@ -1,0 +1,57 @@
+#!/bin/bash
+
+obs_fp="/storage/emulated/0/obsidian_ChK"
+studies_fp="/storage/emulated/0/studies"
+imp_fp="/storage/emulated/0/stuffs"
+
+configPath="$HOME/.config/git_syncer/"
+configName="config"
+
+localPath=$1
+gitUrl=$2
+
+gitSync(){
+  local gitCmd='git add -A && git commit -m "$(date "+%Y-%m-%d %H:%M:%S")" && git push --set-upstream origin main && git pull'
+  local path=$1
+  eval "cd $path && $gitCmd"
+}
+
+gitClone(){
+  local path=$1
+  eval "cd $path && cd .. && git clone $gitUrl"
+}
+
+setupConfig(){
+  eval "mkdir -p $configPath; touch $configPath$configName"
+}
+
+addFileToConfig(){
+  if [ -f "$configPath$configName" ]; then
+    # Check if the specific content exists in the file
+    if ! grep -qF "$1" "$configPath$configName"; then
+      echo "$1" >> "$configPath$configName"
+      gitClone "$1" $gitUrl
+    fi
+  else
+    echo "$1" >> "$configPath$configName"
+    gitClone "$1" $gitUrl
+  fi
+}
+
+readConfigFile(){
+  if [ -f "$configPath$configName" ]; then
+    while IFS= read -r line; do
+      gitSync "$line"
+    done < "$configPath$configName"
+  else
+    setupConfig
+  fi
+}
+
+
+if [ $# -eq 3 ]; then 
+  addFileToConfig $localPath
+  exit
+else
+  readConfigFile
+fi
