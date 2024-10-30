@@ -1,52 +1,86 @@
 #!/bin/bash
 
+# Default configuration
 configPath="$HOME/.config/git_syncer/"
 configName="config"
+localPath="$HOME/.local/share/clones/"
+gitUrl=
+repoDir=
 
-localPath="/storage/emulated/0/"
-gitUrl=$1
-repoDir=$(basename -s .git "$gitUrl")
+# Help function
+show_help() {
+  echo "Usage: git_syncer.sh [options] [gitUrl] [optionalPath]"
+  echo
+  echo "Options:"
+  echo "  -h, --help            Show this help message and exit"
+  echo "  gitUrl                Git repository URL to clone or sync"
+  echo "  optionalPath          Optional path for cloning the repository"
+  echo
+  echo "Description:"
+  echo "  This script helps sync and clone Git repositories and maintain a config file for tracking."
+  echo "  If only gitUrl is provided, the repository is cloned to $localPath."
+  echo "  If both gitUrl and optionalPath are provided, the repository is cloned to optionalPath."
+  echo
+}
 
-gitSync(){
-  local gitCmd='git add -A && git commit -m "$(date "+%Y-%m-%d %H:%M:%S")" && git push --set-upstream origin main && git pull'
+# Git sync function
+gitSync() {
   local path=$1
+  local gitCmd='git add -A && git commit -m "$(date "+%Y-%m-%d %H:%M:%S")" && git push --set-upstream origin main && git pull'
   echo "Git Syncing $path"
   eval "cd $path && $gitCmd"
 }
 
-gitClone(){
-  echo "Git Cloning $gitUrl"
+# Git clone function
+gitClone() {
+  echo "Cloning repository from $gitUrl to $1"
   eval "cd $1 && git clone $gitUrl"
 }
 
-setupConfig(){
-  echo "Setting up config file $configPath$configName"
-  eval "mkdir -p $configPath; touch $configPath$configName"
+# Setup local path if not present
+setupLocalPath() {
+  echo "Setting up local path at $localPath"
+  mkdir -p "$localPath"
 }
 
-addFileToConfig(){
-  local dir=$(dirname "$1")
+# Setup configuration file if not present
+setupConfig() {
+  echo "Setting up config file at $configPath$configName"
+  mkdir -p "$configPath"
+  touch "$configPath$configName"
+}
+
+# Add repository path to config and clone if not already present
+addFileToConfig() {
+  local fullPath=$1
+  local dir=$(dirname "$fullPath")
+
+  if [ ! -d "$localPath" ]; then
+    setupLocalPath
+  fi
+  
   if [ -f "$configPath$configName" ]; then
-    # Check if the specific content exists in the file
-    if [ ! -d $localPath$repoDir ] ; then
-      if  ! grep -qF "$1" "$configPath$configName"; then
-        echo "Adding Entry $1"
-        echo "$1" >> "$configPath$configName"
-        gitClone $dir
+    # Check if repository directory exists or if entry is in config
+    if [ ! -d "$localPath$repoDir" ]; then
+      if ! grep -qF "$fullPath" "$configPath$configName"; then
+        echo "Adding entry to config: $fullPath"
+        echo "$fullPath" >> "$configPath$configName"
+        gitClone "$dir"
       else
-        gitClone $dir
+        gitClone "$dir"
       fi
     fi
   else
     setupConfig
-    echo "Adding Entry $1"
-    echo "$1" >> "$configPath$configName"
-    gitClone
+    echo "Adding entry to config: $fullPath"
+    echo "$fullPath" >> "$configPath$configName"
+    gitClone "$dir"
   fi
 }
 
-readConfigFile(){
-  echo "Trying to read Config File"
+# Read and sync all repositories listed in config file
+readConfigFile() {
+  echo "Reading config file for sync"
   if [ -f "$configPath$configName" ]; then
     while IFS= read -r line; do
       gitSync "$line"
@@ -56,12 +90,20 @@ readConfigFile(){
   fi
 }
 
+# Argument processing
+if [[ $1 == "-h" || $1 == "--help" ]]; then
+  show_help
+  exit 0
+else
+  gitUrl=$1
+  repoDir=$(basename -s .git "$gitUrl")
+fi
 
+# Main logic
 if [ $# -eq 1 ]; then 
-  addFileToConfig $localPath$repoDir
-  exit
+  addFileToConfig "$localPath$repoDir"
 elif [ $# -eq 2 ]; then 
-  addFileToConfig $2$repoDir
+  addFileToConfig "$2$repoDir"
 else
   readConfigFile
 fi
