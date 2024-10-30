@@ -9,7 +9,8 @@ It's so painful to update git repos from my android phone using termux. This bas
 ## Usage
 
 ```bash
-git-syncer /storage/emulated/0/stuffs git@example.com:username/repo.git # Adds /storage/emulated/0/stuffs to the config for auto sync
+git-syncer git@example.com:username/repo.git # Adds /storage/emulated/0/ (default path) to the config for auto sync
+git-syncer git@example.com:username/repo.git /storage/emulated/0/stuffs # Adds /storage/emulated/0/stuffs (repoPath) to the config for auto sync
 git-syncer # Pushes all the changes from all the repos in the config and pulls the new changes
 ```
 
