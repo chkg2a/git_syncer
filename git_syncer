@@ -26,15 +26,15 @@ show_help() {
 # Git sync function
 gitSync() {
   local path=$1
-  local gitCmd='git add -A && git commit -m "$(date "+%Y-%m-%d %H:%M:%S")" && git push --set-upstream origin main && git pull'
+  local gitCmd='git add -A ; git commit -m "$(date "+%Y-%m-%d %H:%M:%S")" ; git push --set-upstream origin main ; git pull'
   echo "Git Syncing $path"
-  eval "cd $path && $gitCmd"
+  eval "cd $path ; $gitCmd"
 }
 
 # Git clone function
 gitClone() {
   echo "Cloning repository from $gitUrl to $1"
-  eval "cd $1 && git clone $gitUrl"
+  eval "cd $1 ; git clone $gitUrl"
 }
 
 # Setup local path if not present
